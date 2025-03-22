@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Token types
+typedef enum { TOKEN_NUMBER, TOKEN_PLUS, TOKEN_MINUS, TOKEN_MUL, TOKEN_DIV, TOKEN_EOF } TokenType;
+
+// Token structure
+typedef struct {
+    TokenType type;
+    int value;  // Only used for numbers
+} Token;
+
+const char *input;
+Token current_token;
+
+// Function to get the next token
+Token get_next_token() {
+    while (*input) {
+        if (isspace(*input)) {
+            input++;
+            continue;
+        }
+        if (isdigit(*input)) {
+            int val = strtol(input, (char **)&input, 10);
+            return (Token){TOKEN_NUMBER, val};
+        }
+        switch (*input) {
+            case '+': input++; return (Token){TOKEN_PLUS, 0};
+            case '-': input++; return (Token){TOKEN_MINUS, 0};
+            case '*': input++; return (Token){TOKEN_MUL, 0};
+            case '/': input++; return (Token){TOKEN_DIV, 0};
+        }
+        fprintf(stderr, "Unexpected character: %c\n", *input);
+        exit(1);
+    }
+    return (Token){TOKEN_EOF, 0};
+}
+
+// Stack-based x64 assembly code generation
+void expr() {
+    int stack_top = 0;
+    current_token = get_next_token();
+    while (current_token.type != TOKEN_EOF) {
+        if (current_token.type == TOKEN_NUMBER) {
+            printf("    mov rax, %d\n", current_token.value);
+            printf("    push rax\n");
+            stack_top++;
+        } else if (current_token.type == TOKEN_PLUS) {
+            stack_top--;
+            printf("    pop rbx\n");
+            printf("    pop rax\n");
+            printf("    add rax, rbx\n");
+            printf("    push rax\n");
+        } else if (current_token.type == TOKEN_MINUS) {
+            stack_top--;
+            printf("    pop rbx\n");
+            printf("    pop rax\n");
+            printf("    sub rax, rbx\n");
+            printf("    push rax\n");
+        } else if (current_token.type == TOKEN_MUL) {
+            stack_top--;
+            printf("    pop rbx\n");
+            printf("    pop rax\n");
+            printf("    imul rax, rbx\n");
+            printf("    push rax\n");
+        } else if (current_token.type == TOKEN_DIV) {
+            stack_top--;
+            printf("    pop rbx\n");
+            printf("    pop rax\n");
+            printf("    cqo\n");
+            printf("    idiv rbx\n");
+            printf("    push rax\n");
+        }
+        current_token = get_next_token();
+    }
+    printf("    pop rax\n");
+    printf("    mov rdi, rax\n");
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <expression>\n", argv[0]);
+        return 1;
+    }
+    input = argv[1];
+    printf(".section .text\n.global _start\n_start:\n");
+    expr();
+    printf("    mov rax, 60\n");
+    printf("    syscall\n");
+    return 0;
+}
