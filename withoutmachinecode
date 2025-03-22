@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Token types
+typedef enum { TOKEN_NUMBER, TOKEN_PLUS, TOKEN_MINUS, TOKEN_MUL, TOKEN_DIV, TOKEN_EOF } TokenType;
+
+// Token structure
+typedef struct {
+    TokenType type;
+    int value;  // Only used for numbers
+} Token;
+
+const char *input;
+Token current_token;
+
+// Function to get the next token
+Token get_next_token() {
+    while (*input) {
+        if (isspace(*input)) {
+            input++;
+            continue;
+        }
+        if (isdigit(*input)) {
+            int val = strtol(input, (char **)&input, 10);
+            return (Token){TOKEN_NUMBER, val};
+        }
+        switch (*input) {
+            case '+': input++; return (Token){TOKEN_PLUS, 0};
+            case '-': input++; return (Token){TOKEN_MINUS, 0};
+            case '*': input++; return (Token){TOKEN_MUL, 0};
+            case '/': input++; return (Token){TOKEN_DIV, 0};
+        }
+        fprintf(stderr, "Unexpected character: %c\n", *input);
+        exit(1);
+    }
+    return (Token){TOKEN_EOF, 0};
+}
+
+// Expression evaluation and code generation
+void expr() {
+    current_token = get_next_token();
+    while (current_token.type != TOKEN_EOF) {
+        if (current_token.type == TOKEN_NUMBER) {
+            printf("PUSH %d\n", current_token.value);
+        } else if (current_token.type == TOKEN_PLUS) {
+            printf("ADD\n");
+        } else if (current_token.type == TOKEN_MINUS) {
+            printf("SUB\n");
+        } else if (current_token.type == TOKEN_MUL) {
+            printf("MUL\n");
+        } else if (current_token.type == TOKEN_DIV) {
+            printf("DIV\n");
+        }
+        current_token = get_next_token();
+    }
+}
+
+    int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <expression>\n", argv[0]);
+        return 1;
+    }
+    input = argv[1];
+    expr();
+    return 0;
+}
